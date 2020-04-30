@@ -1,17 +1,15 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(simulated_depth_sensor)
+project(simulated_lidar_scanner)
 
 add_compile_options(-std=c++11)
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
+  interactive_markers
   pcl_ros
   tf
   tf_conversions
-  roslib
   urdf
-  interactive_markers
   visualization_msgs
-  )
+)
 
 find_package(VTK 6.2 REQUIRED)
 include(${VTK_USE_FILE})
@@ -19,37 +17,76 @@ include(${VTK_USE_FILE})
 find_package(cmake_modules REQUIRED)
 
 catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES simulated_lidar_scanner
+  INCLUDE_DIRS
+    include
+  LIBRARIES
+    ${PROJECT_NAME}
   CATKIN_DEPENDS
-    roscpp
+    interactive_markers
+    pcl_ros
+    tf
+    tf_conversions
+    urdf
+    visualization_msgs
   DEPENDS
     VTK
 )
 
-include_directories(include ${catkin_INCLUDE_DIRS})
+###########
+## Build ##
+###########
+
+include_directories(
+  include
+  ${catkin_INCLUDE_DIRS}
+)
 
 add_library(synthetic_lidar_scanner SHARED
  src/synthetic_lidar_scanner/vtkLidarScanner.cxx
  src/synthetic_lidar_scanner/vtkRay.cxx
  src/synthetic_lidar_scanner/vtkLidarPoint.cxx
 )
-
 target_link_libraries(synthetic_lidar_scanner
  ${catkin_LIBRARIES}
  ${VTK_LIBRARIES}
 )
 
-add_executable(simulated_lidar_scanner_node src/lidar_scanner_node.cpp
-                                            src/lidar_scanner_simulator.cpp
-                                            src/scene_builder.cpp)
-
+add_executable(${PROJECT_NAME}_node
+  src/lidar_scanner_node.cpp
+  src/lidar_scanner_simulator.cpp
+  src/scene_builder.cpp
+)
 target_link_libraries(simulated_lidar_scanner_node
   ${catkin_LIBRARIES}
   ${VTK_LIBRARIES}
-  synthetic_lidar_scanner)
+  ${PROJECT_NAME}
+)
 
-add_executable(scanner_relocator src/scanner_relocator.cpp)
-
+add_executable(scanner_relocator
+  src/scanner_relocator.cpp
+)
 target_link_libraries(scanner_relocator
-  ${catkin_LIBRARIES})
+  ${catkin_LIBRARIES}
+)
+
+#############
+## Install ##
+#############
+
+install(
+  TARGETS
+    ${PROJECT_NAME}
+    ${PROJECT_NAME}_node
+    scanner_relocator
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+)
+
+install(DIRECTORY config launch
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
