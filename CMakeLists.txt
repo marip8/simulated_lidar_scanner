@@ -14,8 +14,6 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(VTK 6.2 REQUIRED)
 include(${VTK_USE_FILE})
 
-find_package(cmake_modules REQUIRED)
-
 catkin_package(
   INCLUDE_DIRS
     include
