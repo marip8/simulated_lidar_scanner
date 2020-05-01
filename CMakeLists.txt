@@ -5,16 +5,14 @@ add_compile_options(-std=c++11)
 find_package(catkin REQUIRED COMPONENTS
   interactive_markers
   pcl_ros
-  tf
-  tf_conversions
+  tf2_eigen
+  tf2_ros
   urdf
   visualization_msgs
 )
 
 find_package(VTK 6.2 REQUIRED)
 include(${VTK_USE_FILE})
-
-find_package(cmake_modules REQUIRED)
 
 catkin_package(
   INCLUDE_DIRS
@@ -24,8 +22,8 @@ catkin_package(
   CATKIN_DEPENDS
     interactive_markers
     pcl_ros
-    tf
-    tf_conversions
+    tf2_eigen
+    tf2_ros
     urdf
     visualization_msgs
   DEPENDS
@@ -41,22 +39,22 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_library(synthetic_lidar_scanner SHARED
+add_library(${PROJECT_NAME}
  src/synthetic_lidar_scanner/vtkLidarScanner.cxx
  src/synthetic_lidar_scanner/vtkRay.cxx
  src/synthetic_lidar_scanner/vtkLidarPoint.cxx
+ src/lidar_scanner_simulator.cpp
+ src/scene_builder.cpp
 )
-target_link_libraries(synthetic_lidar_scanner
+target_link_libraries(${PROJECT_NAME}
  ${catkin_LIBRARIES}
  ${VTK_LIBRARIES}
 )
 
 add_executable(${PROJECT_NAME}_node
   src/lidar_scanner_node.cpp
-  src/lidar_scanner_simulator.cpp
-  src/scene_builder.cpp
 )
-target_link_libraries(simulated_lidar_scanner_node
+target_link_libraries(${PROJECT_NAME}_node
   ${catkin_LIBRARIES}
   ${VTK_LIBRARIES}
   ${PROJECT_NAME}

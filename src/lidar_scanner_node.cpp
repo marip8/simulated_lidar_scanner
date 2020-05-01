@@ -3,17 +3,16 @@
 #include <ros/package.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <pcl_ros/point_cloud.h>
-#include <tf/transform_listener.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_eigen/tf2_eigen.h>
 #include <urdf/model.h>
 
 // VTK Lidar Scanner
-#include <lidar_scanner_node/scanner_params.h>
-#include <lidar_scanner_node/lidar_scanner_simulator.h>
-#include <lidar_scanner_node/scene_builder.h>
+#include <simulated_lidar_scanner/scanner_params.h>
+#include <simulated_lidar_scanner/lidar_scanner_simulator.h>
+#include <simulated_lidar_scanner/scene_builder.h>
 
 // VTK Utils
-#include <vtk_viewer/vtk_utils.h>
-#include <vtk_viewer/vtk_viewer.h>
 #include <vtkTransform.h>
 #include <vtkTransformPolyDataFilter.h>
 #include <vtkAppendPolyData.h>
@@ -23,14 +22,16 @@
 const static double SCAN_FREQUENCY = 10.0; // Hz
 const static double TF_TIMEOUT = 30.0; // seconds
 const static double TF_FILTER_DIST = 0.001; // meters
-const static double TF_FILTER_DIST_SQR = TF_FILTER_DIST * TF_FILTER_DIST;
 
-static bool distanceComparator(const tf::StampedTransform& a,
-                               const tf::StampedTransform& b)
+static bool distanceComparator(const geometry_msgs::TransformStamped& a,
+                               const geometry_msgs::TransformStamped& b)
 {
-  const tf::Transform diff = a.inverseTimes(b);
-  const double d2 = diff.getOrigin().length2();
-  return d2 > TF_FILTER_DIST_SQR;
+  Eigen::Isometry3d t_a = tf2::transformToEigen(a);
+  Eigen::Isometry3d t_b = tf2::transformToEigen(b);
+
+  const Eigen::Isometry3d diff = t_a.inverse() * t_b;
+  const double d = diff.translation().norm();
+  return d > TF_FILTER_DIST;
 }
 
 
@@ -170,14 +171,14 @@ int main(int argc, char **argv)
   if(!pnh.getParam("world_frame", world_frame))
   {
     ROS_ERROR("World frame name parameter must be set");
-    return false;
+    return -1;
   }
 
   std::string scanner_frame;
   if(!pnh.getParam("scanner_frame", scanner_frame))
   {
     ROS_ERROR("Scanner frame name parameter must be set");
-    return false;
+    return -1;
   }
 
   // Get scanner parameters
@@ -188,8 +189,9 @@ int main(int argc, char **argv)
   }
 
   // Create a ROS tf listener to get the scanner frame
-  tf::TransformListener listener;
-  if(!listener.waitForTransform(world_frame, scanner_frame, ros::Time(0), ros::Duration(TF_TIMEOUT)))
+  tf2_ros::Buffer buffer;
+  tf2_ros::TransformListener listener(buffer);
+  if(!buffer.canTransform(world_frame, scanner_frame, ros::Time(0), ros::Duration(TF_TIMEOUT)))
   {
     ROS_FATAL("TF listener timeout for '%s' to '%s' transform", world_frame.c_str(), scanner_frame.c_str());
     return 0;
@@ -240,8 +242,8 @@ int main(int argc, char **argv)
   ros::Publisher scan_pub = pnh.advertise<sensor_msgs::PointCloud2>("/sensor_data/" + scanner_frame, 1, false);
 
   // Set initial previous transform to identity matrix
-  tf::StampedTransform previous_transform;
-  previous_transform.setIdentity();
+  geometry_msgs::TransformStamped previous_transform;
+  previous_transform.transform.rotation.w = 1.0;
 
   sensor_msgs::PointCloud2 scan_data_msg;
 
@@ -249,12 +251,12 @@ int main(int argc, char **argv)
   while(pnh.ok())
   {
     // Get TF frame from absolute static world origin to scanner focal point
-    tf::StampedTransform transform;
+    geometry_msgs::TransformStamped transform;
     try
     {
-      listener.lookupTransform(world_frame, scanner_frame, ros::Time(0), transform);
+      transform = buffer.lookupTransform(world_frame, scanner_frame, ros::Time(0));
     }
-    catch(tf::TransformException ex)
+    catch(tf2::TransformException ex)
     {
       ROS_ERROR("%s", ex.what());
       continue;
@@ -269,7 +271,7 @@ int main(int argc, char **argv)
     if(distanceComparator(previous_transform, transform))
     {
       // Set scanner transform and dynamically changing elements of the scene
-      scanner.getNewScanData(transform);
+      scanner.getNewScanData(tf2::transformToEigen(transform));
 
       // Convert scan data from private class object to ROS msg
       pcl::PointCloud<pcl::PointNormal>::Ptr data = scanner.getScanDataPointCloud();

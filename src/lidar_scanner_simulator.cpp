@@ -1,12 +1,35 @@
-#include <lidar_scanner_node/lidar_scanner_simulator.h>
-#include <lidar_scanner_node/scanner_params.h>
-#include <vtk_viewer/vtk_utils.h>
+#include <simulated_lidar_scanner/lidar_scanner_simulator.h>
+#include <simulated_lidar_scanner/scanner_params.h>
 #include <pcl_ros/point_cloud.h>
 #include <pcl_ros/transforms.h>
-#include <tf/transform_datatypes.h>
-#include <tf_conversions/tf_eigen.h>
 #include <vtkTransform.h>
-#include <vtkPolyData.h>
+#include <vtkPointData.h>
+
+namespace
+{
+pcl::PointCloud<pcl::PointNormal> vtkToPCL(vtkPolyData *pdata)
+{
+  pcl::PointCloud<pcl::PointNormal> cloud;
+  cloud.points.reserve(pdata->GetPoints()->GetNumberOfPoints());
+
+  for (int i = 0; i < pdata->GetPoints()->GetNumberOfPoints(); ++i)
+  {
+    pcl::PointNormal pt;
+    const double *ptr = pdata->GetPoints()->GetPoint(i);
+    pt.x = ptr[0];
+    pt.y = ptr[1];
+    pt.z = ptr[2];
+
+    const double *norm = pdata->GetPointData()->GetNormals()->GetTuple(i);
+    pt.normal_x = norm[0];
+    pt.normal_y = norm[1];
+    pt.normal_z = norm[2];
+
+    cloud.push_back(pt);
+  }
+
+  return cloud;
+}
 
 bool incidenceFilter(const pcl::PointNormal& pt,
                      const double max_angle)
@@ -23,6 +46,8 @@ bool distanceFilter(const pcl::PointNormal& pt,
   const double dist2 = pt.x*pt.x + pt.y*pt.y + pt.z*pt.z;
   return (dist2 > max_dist*max_dist);
 }
+
+} // namespace anonymous
 
 LidarScannerSim::LidarScannerSim(const scanner_params& sim)
 {
@@ -54,25 +79,15 @@ LidarScannerSim::LidarScannerSim(const scanner_params& sim)
   }
 }
 
-void LidarScannerSim::setScannerTransform(const tf::StampedTransform& frame)
+void LidarScannerSim::setScannerTransform(const Eigen::Isometry3d& frame)
 {
-  tf::Vector3 origin = frame.getOrigin();
-  tf::Matrix3x3 orientation_mat = frame.getBasis();
-
   vtkSmartPointer<vtkMatrix4x4> vtk_matrix = vtkSmartPointer<vtkMatrix4x4>::New();
-  for(unsigned int j = 0; j < 4; ++j)
+
+  for (unsigned row = 0; row < 3; ++row)
   {
-    if(j != 3)
+    for(unsigned int col = 0; col < 4; ++col)
     {
-      vtk_matrix->SetElement(0, j, orientation_mat.getColumn(j).getX());
-      vtk_matrix->SetElement(1, j, orientation_mat.getColumn(j).getY());
-      vtk_matrix->SetElement(2, j, orientation_mat.getColumn(j).getZ());
-    }
-    else
-    {
-      vtk_matrix->SetElement(0, j, origin.getX());
-      vtk_matrix->SetElement(1, j, origin.getY());
-      vtk_matrix->SetElement(2, j, origin.getZ());
+      vtk_matrix->SetElement(row, col, frame.matrix()(row, col));
     }
   }
 
@@ -83,10 +98,9 @@ void LidarScannerSim::setScannerTransform(const tf::StampedTransform& frame)
 
   // Set and update transform in scanner object
   scanner_->SetTransform(transform);
-  scanner_frame_ = frame;
 }
 
-void LidarScannerSim::getNewScanData(const tf::StampedTransform& scanner_transform)
+void LidarScannerSim::getNewScanData(const Eigen::Isometry3d& scanner_transform)
 {
   // Set the scanner transform
   setScannerTransform(scanner_transform);
@@ -95,13 +109,10 @@ void LidarScannerSim::getNewScanData(const tf::StampedTransform& scanner_transfo
   scanner_->PerformScan();
   scanner_->GetValidOutputPoints(scan_data_vtk_);
 
-  pcl::PointCloud<pcl::PointNormal> cloud;
-  vtk_viewer::VTKtoPCL(scan_data_vtk_, cloud);
+  pcl::PointCloud<pcl::PointNormal> cloud = vtkToPCL(scan_data_vtk_);
 
   // Transform point cloud into scanner frame
-  Eigen::Affine3d transform;
-  tf::transformTFToEigen(scanner_frame_.inverse(), transform);
-  pcl::transformPointCloudWithNormals(cloud, *scan_data_cloud_, transform);
+  pcl::transformPointCloudWithNormals(cloud, *scan_data_cloud_, scanner_transform.inverse().matrix());
 
   // Cull points whose angle of incidence is greater than the specified tolerance
   if(enable_incidence_filter_)

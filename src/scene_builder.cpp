@@ -1,18 +1,27 @@
-#include <lidar_scanner_node/scene_builder.h>
+#include <simulated_lidar_scanner/scene_builder.h>
 #include <ros/ros.h>
 #include <ros/package.h>
 #include <urdf/model.h>
 #include <boost/filesystem.hpp>
 
 // VTK Utils
-#include <vtk_viewer/vtk_utils.h>
-#include <vtk_viewer/vtk_viewer.h>
+#include <vtkSTLReader.h>
 #include <vtkTransform.h>
 #include <vtkTransformPolyDataFilter.h>
 #include <vtkAppendPolyData.h>
 
 namespace
 {
+  vtkSmartPointer<vtkPolyData> readSTLFile(const std::string& file)
+  {
+    vtkSmartPointer<vtkSTLReader> reader = vtkSmartPointer<vtkSTLReader>::New();
+    reader->SetFileName(file.c_str());
+    reader->SetMerging(1);
+    reader->Update();
+
+    return reader->GetOutput();
+  }
+
   vtkSmartPointer<vtkTransform> urdfPoseToVTKTransform(const urdf::Pose& pose)
   {
     urdf::Rotation q = pose.rotation;
@@ -43,9 +52,9 @@ namespace
     return transform;
   }
 
-  Eigen::Affine3d urdfPoseToEigen(const urdf::Pose& pose)
+  Eigen::Isometry3d urdfPoseToEigen(const urdf::Pose& pose)
   {
-    Eigen::Affine3d transform (Eigen::Affine3d::Identity());
+    Eigen::Isometry3d transform (Eigen::Isometry3d::Identity());
     transform.translate(Eigen::Vector3d(pose.position.x, pose.position.y, pose.position.z));
     transform.rotate(Eigen::Quaterniond(pose.rotation.w, pose.rotation.x, pose.rotation.y, pose.rotation.z));
 
@@ -202,9 +211,9 @@ void SceneBuilder::getLinkGeometry(const std::vector<urdf::VisualSharedPtr>& vis
     urdf::VisualConstSharedPtr vis = *it;
     if(vis->geometry->type == urdf::Geometry::MESH)
     {
-      Eigen::Affine3d link_transform = urdfPoseToEigen(vis->origin);
-      Eigen::Affine3d joint_transform  = urdfPoseToEigen(joint_pose);
-      Eigen::Affine3d transform (joint_transform * link_transform);
+      Eigen::Isometry3d link_transform = urdfPoseToEigen(vis->origin);
+      Eigen::Isometry3d joint_transform  = urdfPoseToEigen(joint_pose);
+      Eigen::Isometry3d transform (joint_transform * link_transform);
 
       SceneObject obj (boost::dynamic_pointer_cast<const urdf::Mesh>(vis->geometry)->filename, transform);
       scene_data_.push_back(obj);
@@ -308,7 +317,7 @@ bool SceneBuilder::vtkSceneFromMeshFiles()
       return false;
     }
 
-    vtkSmartPointer<vtkPolyData> vtk_poly = vtk_viewer::readSTLFile(it->filename);
+    vtkSmartPointer<vtkPolyData> vtk_poly = readSTLFile(it->filename);
     if(!vtk_poly)
     {
       ROS_ERROR("Unable to read input .stl file");
@@ -327,11 +336,6 @@ bool SceneBuilder::vtkSceneFromMeshFiles()
   }
   append_filter->Update();
   scene = append_filter->GetOutput();
-
-//  vtk_viewer::VTKViewer viz;
-//  std::vector<float> color = {0.0, 0.0, 1.0};
-//  viz.addPolyDataDisplay(scene.GetPointer(), color);
-//  viz.renderDisplay();
 
   return true;
 }

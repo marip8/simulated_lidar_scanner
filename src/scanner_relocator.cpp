@@ -1,8 +1,7 @@
 #include <ros/ros.h>
 #include <visualization_msgs/InteractiveMarker.h>
 #include <interactive_markers/interactive_marker_server.h>
-#include <tf/transform_listener.h>
-#include <tf/transform_broadcaster.h>
+#include <tf2_ros/transform_broadcaster.h>
 
 visualization_msgs::Marker makeVisualMarker(std::string& scanner_frame)
 {
@@ -123,7 +122,7 @@ int main(int argc, char **argv)
   }
 
   // Set up TF broadcaster for changing scanner frames
-  tf::TransformBroadcaster broadcaster;
+  tf2_ros::TransformBroadcaster broadcaster;
 
   // Set up interactive marker server
   interactive_markers::InteractiveMarkerServer server("scanner_relocator");
@@ -146,13 +145,21 @@ int main(int argc, char **argv)
       visualization_msgs::InteractiveMarker int_marker;
       server.get(scanner_frames[i], int_marker);
 
-      tf::StampedTransform transform;
-      const tf::Vector3 pos (int_marker.pose.position.x, int_marker.pose.position.y, int_marker.pose.position.z);
-      const tf::Quaternion quat (int_marker.pose.orientation.x, int_marker.pose.orientation.y, int_marker.pose.orientation.z, int_marker.pose.orientation.w);
+      geometry_msgs::TransformStamped transform;
+      transform.header.frame_id = world_frame;
+      transform.header.stamp = ros::Time::now();
+      transform.child_frame_id = scanner_frames[i];
 
-      transform.setOrigin(pos);
-      transform.setRotation(quat);
-      broadcaster.sendTransform(tf::StampedTransform(transform, ros::Time::now(), world_frame, scanner_frames[i]));
+      transform.transform.translation.x = int_marker.pose.position.x;
+      transform.transform.translation.y = int_marker.pose.position.y;
+      transform.transform.translation.z = int_marker.pose.position.z;
+
+      transform.transform.rotation.w = int_marker.pose.orientation.w;
+      transform.transform.rotation.x = int_marker.pose.orientation.x;
+      transform.transform.rotation.y = int_marker.pose.orientation.y;
+      transform.transform.rotation.z = int_marker.pose.orientation.z;
+
+      broadcaster.sendTransform(transform);
     }
 
     ros::spinOnce();
