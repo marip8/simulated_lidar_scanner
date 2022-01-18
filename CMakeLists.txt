@@ -11,7 +11,6 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_eigen
   tf2_ros
   urdf
-  visualization_msgs
 )
 
 find_package(VTK REQUIRED)
@@ -28,7 +27,6 @@ catkin_package(
     tf2_eigen
     tf2_ros
     urdf
-    visualization_msgs
   DEPENDS
     VTK
 )
