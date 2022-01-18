@@ -21,19 +21,6 @@
 
 const static double SCAN_FREQUENCY = 10.0; // Hz
 const static double TF_TIMEOUT = 30.0; // seconds
-const static double TF_FILTER_DIST = 0.001; // meters
-
-static bool distanceComparator(const geometry_msgs::TransformStamped& a,
-                               const geometry_msgs::TransformStamped& b)
-{
-  Eigen::Isometry3d t_a = tf2::transformToEigen(a);
-  Eigen::Isometry3d t_b = tf2::transformToEigen(b);
-
-  const Eigen::Isometry3d diff = t_a.inverse() * t_b;
-  const double d = diff.translation().norm();
-  return d > TF_FILTER_DIST;
-}
-
 
 bool getParams(const XmlRpc::XmlRpcValue& resources,
                std::vector<SceneObject>& scene_objects)
@@ -241,12 +228,6 @@ int main(int argc, char **argv)
   // Create a ROS publisher to publish the scan data
   ros::Publisher scan_pub = pnh.advertise<sensor_msgs::PointCloud2>("/sensor_data/" + scanner_frame, 1, false);
 
-  // Set initial previous transform to identity matrix
-  geometry_msgs::TransformStamped previous_transform;
-  previous_transform.transform.rotation.w = 1.0;
-
-  sensor_msgs::PointCloud2 scan_data_msg;
-
   ros::Rate loop_rate(SCAN_FREQUENCY);
   while(pnh.ok())
   {
@@ -262,25 +243,16 @@ int main(int argc, char **argv)
       continue;
     }
 
-    // We time stamp the data prior the moment prior to performing raytracing
-    // instead of after its done b/c the raytracing can take a while.
-    scan_data_msg.header.stamp = ros::Time::now()-ros::Duration(1.0);
+    // Set scanner transform and dynamically changing elements of the scene
+    scanner.getNewScanData(tf2::transformToEigen(transform));
+    pcl::PointCloud<pcl::PointNormal>::Ptr data = scanner.getScanDataPointCloud();
+
+    // Convert scan data from private class object to ROS msg
+    sensor_msgs::PointCloud2 scan_data_msg;
+    pcl::toROSMsg(*data, scan_data_msg);
+    scan_data_msg.header.stamp = ros::Time::now();
     scan_data_msg.header.frame_id = scanner_frame;
-
-    // Update scan information if TF frame has moved significantly
-    if(distanceComparator(previous_transform, transform))
-    {
-      // Set scanner transform and dynamically changing elements of the scene
-      scanner.getNewScanData(tf2::transformToEigen(transform));
-
-      // Convert scan data from private class object to ROS msg
-      pcl::PointCloud<pcl::PointNormal>::Ptr data = scanner.getScanDataPointCloud();
-      pcl::toROSMsg(*data, scan_data_msg);
-    }
-
     scan_pub.publish(scan_data_msg);
-
-    previous_transform = transform;
 
     ros::spinOnce();
     loop_rate.sleep();
