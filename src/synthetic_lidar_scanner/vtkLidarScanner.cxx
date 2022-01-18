@@ -398,13 +398,15 @@ void vtkLidarScanner::ConstructOutput()
         {
         // Don't modify the default "empty" values set in these variable declarations above.
         }
-
+#if VTK_MAJOR_VERSION < 7
       coordinateArray->SetTupleValue(index, coordinate);
       normalArray->SetTupleValue(index, n);
       imageScalars->SetTupleValue(index, pixel);
-//        coordinateArray->SetTypedTuple(index, coordinate);
-//        normalArray->SetTypedTuple(index, n);
-//        imageScalars->SetTypedTuple(index, pixel);
+#else
+      coordinateArray->SetTypedTuple(index, coordinate);
+      normalArray->SetTypedTuple(index, n);
+      imageScalars->SetTypedTuple(index, pixel);
+#endif
       depthArray->SetValue(index, depth);
 
       }
@@ -796,8 +798,11 @@ void vtkLidarScanner::GetValidOutputPoints(vtkPolyData* const output)
     {
     ScannerLocationPid[0] = Points->InsertNextPoint(this->GetLocation());
     double OriginNormal[3] = {0.0, 0.0, 1.0}; //must be a valid normal so tube filter will work (!!! should change this to the scanner's 'up' vector)
+#if VTK_MAJOR_VERSION < 7
     norms->InsertNextTupleValue(OriginNormal); // have to insert a normal for this new point or it will complain "the array is too short"
-//    norms->InsertNextTypedTuple(OriginNormal); // have to insert a normal for this new point or it will complain "the array is too short"
+#else
+    norms->InsertNextTypedTuple(OriginNormal); // have to insert a normal for this new point or it will complain "the array is too short"
+#endif
     }
 
   // Traverse the grid, storing valid scene intersections in the geometry/topology/normal arrays
@@ -814,8 +819,11 @@ void vtkLidarScanner::GetValidOutputPoints(vtkPolyData* const output)
         pid[0] = Points->InsertNextPoint(p);
         Vertices->InsertNextCell(1,pid);
 
+#if VTK_MAJOR_VERSION < 7
         norms->InsertNextTupleValue(this->Scan->GetValue(phiCounter, thetaCounter)->GetNormal());
-//        norms->InsertNextTypedTuple(this->Scan->GetValue(phiCounter, thetaCounter)->GetNormal());
+#else
+        norms->InsertNextTypedTuple(this->Scan->GetValue(phiCounter, thetaCounter)->GetNormal());
+#endif
 
         if(StoreRays)
           {
@@ -839,8 +847,11 @@ void vtkLidarScanner::GetValidOutputPoints(vtkPolyData* const output)
           Vertices->InsertNextCell(1,pid);
 
           double n[3] = {this->RepresentationLength, 0.0, 0.0}; //the normal of a miss point is not defined, so we set it to an arbitrary (1,0,0)
+#if VTK_MAJOR_VERSION < 7
           norms->InsertNextTupleValue(n);
-//          norms->InsertNextTypedTuple(n);
+#else
+          norms->InsertNextTypedTuple(n);
+#endif
 
           vtkSmartPointer<vtkLine> Line = vtkSmartPointer<vtkLine>::New();
           Line->GetPointIds()->SetId(0,ScannerLocationPid[0]);
@@ -892,8 +903,11 @@ void vtkLidarScanner::GetAllOutputPoints(vtkPolyData* const output)
 
       double n[3];
       this->Scan->GetValue(phi, theta)->GetNormal(n);
+#if VTK_MAJOR_VERSION < 7
       normals->InsertNextTupleValue(n);
-//      normals->InsertNextTypedTuple(n);
+#else
+      normals->InsertNextTypedTuple(n);
+#endif
 
       validArray->InsertNextValue(this->Scan->GetValue(phi, theta)->GetHit());
     }//end phi loop
@@ -955,12 +969,15 @@ void vtkLidarScanner::WriteScanner(const std::string &filename) const
     vtkSmartPointer<vtkUnsignedCharArray>::New();
   colors->SetNumberOfComponents(3);
   colors->SetName("Colors");
+#if VTK_MAJOR_VERSION < 7
   colors->InsertNextTupleValue(red);
   colors->InsertNextTupleValue(yellow);
   colors->InsertNextTupleValue(green);
-//  colors->InsertNextTypedTuple(red);
-//  colors->InsertNextTypedTuple(yellow);
-//  colors->InsertNextTypedTuple(green);
+#else
+  colors->InsertNextTypedTuple(red);
+  colors->InsertNextTypedTuple(yellow);
+  colors->InsertNextTypedTuple(green);
+#endif
 
   //add points and lines to polydata
   poly->SetPoints(points);
@@ -1186,16 +1203,19 @@ void vtkLidarScanner::CreateRepresentation(vtkPolyData* const representation)
   colors->SetName("Colors");
  
   // Add the colors we created to the colors array
+#if VTK_MAJOR_VERSION < 7
   colors->InsertNextTupleValue(green);
   colors->InsertNextTupleValue(red);
   colors->InsertNextTupleValue(green);
   colors->InsertNextTupleValue(green);
   colors->InsertNextTupleValue(green);
-//  colors->InsertNextTypedTuple(green);
-//  colors->InsertNextTypedTuple(red);
-//  colors->InsertNextTypedTuple(green);
-//  colors->InsertNextTypedTuple(green);
-//  colors->InsertNextTypedTuple(green);
+#else
+  colors->InsertNextTypedTuple(green);
+  colors->InsertNextTypedTuple(red);
+  colors->InsertNextTypedTuple(green);
+  colors->InsertNextTypedTuple(green);
+  colors->InsertNextTypedTuple(green);
+#endif
 
   pd->GetCellData()->SetScalars(colors);
   
