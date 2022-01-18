@@ -8,6 +8,8 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
+namespace simulated_lidar_scanner
+{
 struct ScannerParams
 {
   /** @brief Horizontal span of the field of view of the sensor (rad) */
@@ -62,3 +64,5 @@ private:
   bool enable_distance_filter_ = false;
   double max_distance_;
 };
+
+} // namespace simulated_lidar_scanner

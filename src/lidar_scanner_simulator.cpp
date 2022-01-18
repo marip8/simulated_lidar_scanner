@@ -1,5 +1,5 @@
 #include <simulated_lidar_scanner/lidar_scanner_simulator.h>
-#include <simulated_lidar_scanner/scanner_params.h>
+
 #include <pcl_ros/point_cloud.h>
 #include <pcl_ros/transforms.h>
 #include <vtkTransform.h>
@@ -49,7 +49,9 @@ bool distanceFilter(const pcl::PointNormal& pt,
 
 } // namespace anonymous
 
-LidarScannerSim::LidarScannerSim(const scanner_params& sim)
+namespace simulated_lidar_scanner
+{
+LidarScannerSim::LidarScannerSim(const ScannerParams& sim)
 {
   // Initialize scanner and scan data
   scanner_ = vtkSmartPointer<vtkLidarScanner>::New();
@@ -118,16 +120,18 @@ void LidarScannerSim::getNewScanData(const Eigen::Isometry3d& scanner_transform)
   if(enable_incidence_filter_)
   {
     scan_data_cloud_->erase(std::remove_if(scan_data_cloud_->points.begin(),
-                                          scan_data_cloud_->points.end(),
-                                          boost::bind(incidenceFilter, _1, max_incidence_angle_)),
-                           scan_data_cloud_->end());
+                                           scan_data_cloud_->points.end(),
+                                           boost::bind(incidenceFilter, _1, max_incidence_angle_)),
+                            scan_data_cloud_->end());
   }
 
   if(enable_distance_filter_)
   {
     scan_data_cloud_->erase(std::remove_if(scan_data_cloud_->points.begin(),
-                                          scan_data_cloud_->points.end(),
-                                          boost::bind(distanceFilter, _1, max_distance_)),
-                           scan_data_cloud_->end());
+                                           scan_data_cloud_->points.end(),
+                                           boost::bind(distanceFilter, _1, max_distance_)),
+                            scan_data_cloud_->end());
   }
 }
+
+} // namespace simulated_lidar_scanner
