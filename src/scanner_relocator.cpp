@@ -8,7 +8,7 @@ visualization_msgs::Marker makeVisualMarker(std::string& scanner_frame)
   static int idx = 0;
   visualization_msgs::Marker marker;
   marker.header.frame_id = scanner_frame;
-  marker.header.stamp = ros::Time::now();
+  marker.header.stamp = ros::Time(0);
   marker.id = idx++;
   marker.type = visualization_msgs::Marker::CUBE;
   marker.action = visualization_msgs::Marker::ADD;
@@ -22,65 +22,70 @@ visualization_msgs::Marker makeVisualMarker(std::string& scanner_frame)
   marker.color.g = 0.5;
   marker.color.b = 0.5;
 
+  marker.pose.orientation.w = 1.0;
+
   return marker;
 }
 
-void make6DOFControl(visualization_msgs::InteractiveMarker& m)
+std::vector<visualization_msgs::InteractiveMarkerControl> make6DOFControls()
 {
-  visualization_msgs::InteractiveMarkerControl control;
+  std::vector<visualization_msgs::InteractiveMarkerControl> controls;
 
   // Move and rotate X-axis
-  control.orientation.w = 1.0;
-  control.orientation.x = 1.0;
-  control.orientation.y = 0.0;
-  control.orientation.z = 0.0;
+  {
+    visualization_msgs::InteractiveMarkerControl control;
+    control.orientation.w = 1.0 / std::sqrt(2);
+    control.orientation.x = 1.0 / std::sqrt(2);
+    control.name = "move_x";
+    control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
+    controls.push_back(control);
 
-  control.name = "move_x";
-  control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
-  m.controls.push_back(control);
-
-  control.name = "rotate_x";
-  control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
-  m. controls.push_back(control);
+    control.name = "rotate_x";
+    control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
+    controls.push_back(control);
+  }
 
   // Move and rotate Y-axis
+  {
+    visualization_msgs::InteractiveMarkerControl control;
+    control.orientation.w = 1.0 / std::sqrt(2);
+    control.orientation.y = 1.0 / std::sqrt(2);
+    control.name = "move_y";
+    control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
+    controls.push_back(control);
 
-  control.orientation.w = 1.0;
-  control.orientation.x = 0.0;
-  control.orientation.y = 1.0;
-  control.orientation.z = 0.0;
-
-  control.name = "move_y";
-  control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
-  m.controls.push_back(control);
-
-  control.name = "rotate_y";
-  control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
-  m. controls.push_back(control);
+    control.name = "rotate_y";
+    control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
+    controls.push_back(control);
+  }
 
   // Move and rotate Z-axis
+  {
+    visualization_msgs::InteractiveMarkerControl control;
+    control.orientation.w = 1.0 / std::sqrt(2);
+    control.orientation.z = 1.0 / std::sqrt(2);
 
-  control.orientation.w = 1.0;
-  control.orientation.x = 0.0;
-  control.orientation.y = 0.0;
-  control.orientation.z = 1.0;
+    control.name = "move_z";
+    control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
+    controls.push_back(control);
 
-  control.name = "move_z";
-  control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
-  m.controls.push_back(control);
+    control.name = "rotate_z";
+    control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
+    controls.push_back(control);
+  }
 
-  control.name = "rotate_z";
-  control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
-  m. controls.push_back(control);
+  return controls;
 }
 
 visualization_msgs::InteractiveMarker makeInteractiveMarker(std::string& scanner_frame,
                                                             std::string& world_frame)
 {
   visualization_msgs::InteractiveMarker m;
+  m.header.stamp = ros::Time(0);
   m.header.frame_id = world_frame;
   m.scale = 1.0;
   m.name = scanner_frame;
+
   m.pose.position.x = m.pose.position.y = m.pose.position.z = 0.0;
   m.pose.orientation.x = m.pose.orientation.y = m.pose.orientation.z = 0.0;
   m.pose.orientation.w = 1.0;
@@ -89,11 +94,14 @@ visualization_msgs::InteractiveMarker makeInteractiveMarker(std::string& scanner
   visualization_msgs::Marker visual = makeVisualMarker(scanner_frame);
 
   // Controls
-  visualization_msgs::InteractiveMarkerControl control;
-  control.always_visible = true;
-  control.markers.push_back(visual);
-  m.controls.push_back(control);
-  make6DOFControl(m);
+  m.controls = make6DOFControls();
+  {
+    visualization_msgs::InteractiveMarkerControl control;
+    control.orientation.w = 1.0;
+    control.always_visible = true;
+    control.markers.push_back(visual);
+    m.controls.push_back(control);
+  }
 
   return m;
 }
@@ -138,6 +146,7 @@ int main(int argc, char **argv)
 
   // Loop
   ros::Rate loop(10.0f);
+  std::size_t seq = 0;
   while(ros::ok())
   {
     for(size_t i = 0; i < scanner_frames.size(); ++i)
@@ -148,6 +157,7 @@ int main(int argc, char **argv)
       geometry_msgs::TransformStamped transform;
       transform.header.frame_id = world_frame;
       transform.header.stamp = ros::Time::now();
+      transform.header.seq = seq;
       transform.child_frame_id = scanner_frames[i];
 
       transform.transform.translation.x = int_marker.pose.position.x;
@@ -161,6 +171,8 @@ int main(int argc, char **argv)
 
       broadcaster.sendTransform(transform);
     }
+
+    ++seq;
 
     ros::spinOnce();
     loop.sleep();
