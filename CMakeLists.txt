@@ -1,7 +1,10 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(simulated_lidar_scanner)
 
-add_compile_options(-std=c++11)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS ON)
+
 find_package(catkin REQUIRED COMPONENTS
   interactive_markers
   pcl_ros
@@ -11,7 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   visualization_msgs
 )
 
-find_package(VTK 6.2 REQUIRED)
+find_package(VTK REQUIRED)
 include(${VTK_USE_FILE})
 
 catkin_package(
