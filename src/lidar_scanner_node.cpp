@@ -142,6 +142,10 @@ bool loadScannerParams(ros::NodeHandle& nh,
     sim.max_distance = 0.0;
   }
 
+  sim.theta_span *= M_PI / 180.0;
+  sim.phi_span *= M_PI / 180.0;
+  sim.max_incidence_angle *= M_PI / 180.0;
+
   return true;
 }
 

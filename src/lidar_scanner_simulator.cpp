@@ -69,7 +69,7 @@ LidarScannerSim::LidarScannerSim(const scanner_params& sim)
   if(sim.max_incidence_angle > 0.0)
   {
     enable_incidence_filter_ = true;
-    max_incidence_angle_ = -std::cos(sim.max_incidence_angle * M_PI / 180.0);
+    max_incidence_angle_ = -std::cos(sim.max_incidence_angle);
   }
 
   if(sim.max_distance > 0.0)
