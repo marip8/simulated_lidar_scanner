@@ -10,8 +10,6 @@
 
 using namespace simulated_lidar_scanner;
 
-const static double SCAN_FREQUENCY = 10.0; // Hz
-
 template <typename T>
 T get(const ros::NodeHandle& nh, const std::string& key)
 {
@@ -70,11 +68,12 @@ int main(int argc, char **argv)
     ros::NodeHandle nh, pnh("~");
 
     // Load the general parameters
-    std::string world_frame = get<std::string>(pnh, "world_frame");
-    std::string scanner_frame = get<std::string>(pnh, "scanner_frame");
+    const std::string world_frame = get<std::string>(pnh, "world_frame");
+    const std::string scanner_frame = get<std::string>(pnh, "scanner_frame");
+    const ros::Rate rate(get<double>(pnh, "scan_frequency"));
 
     // Get scanner parameters
-    ScannerParams sim = loadScannerParams(pnh);
+    const ScannerParams sim = loadScannerParams(pnh);
 
     // Create a ROS tf listener to get the scanner frame
     tf2_ros::Buffer buffer;
@@ -138,7 +137,6 @@ int main(int argc, char **argv)
       }
     };
 
-    ros::Rate rate(SCAN_FREQUENCY);
     ros::Timer timer = nh.createTimer(rate.expectedCycleTime(), cb);
     ros::spin();
   }

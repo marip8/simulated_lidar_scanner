@@ -1,13 +1,15 @@
 <?xml version="1.0" ?>
 <launch>
   <arg name="params_file" default="$(find simulated_lidar_scanner)/test/test_params.yaml"/>
-  <arg name="world_frame" default="world"/>
-  <arg name="scanner_frame" default="scanner"/>
+  <arg name="world_frame"/>
+  <arg name="scanner_frame" />
+  <arg name="scan_frequency" default="10.0" doc="Hz"/>
 
   <node name="$(arg scanner_frame)" pkg="simulated_lidar_scanner" type="simulated_lidar_scanner_node" output="screen" clear_params="true">
     <rosparam command="load" file="$(arg params_file)"/>
     <param name="world_frame" value="$(arg world_frame)"/>
     <param name="scanner_frame" value="$(arg scanner_frame)"/>
+    <param name="scan_frequency" value="$(arg scan_frequency)"/>
   </node>
 
 </launch>
