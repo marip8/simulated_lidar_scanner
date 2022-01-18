@@ -61,7 +61,7 @@ namespace
     return transform;
   }
 
-  vtkSmartPointer<vtkTransform> eigenTransformToVTK(const Eigen::Affine3d& transform)
+  vtkSmartPointer<vtkTransform> eigenTransformToVTK(const Eigen::Isometry3d& transform)
   {
     vtkSmartPointer<vtkTransform> vtk_transform = vtkSmartPointer<vtkTransform>::New();
 
@@ -75,7 +75,7 @@ namespace
   }
 
   visualization_msgs::Marker createMeshResourceMarker(const std::string& filename,
-                                                      const Eigen::Affine3d& transform,
+                                                      const Eigen::Isometry3d& transform,
                                                       const std::string& frame,
                                                       const int id)
   {
@@ -108,10 +108,28 @@ namespace
   }
 }
 
-SceneBuilder::SceneBuilder()
-  : scene(vtkSmartPointer<vtkPolyData>::New())
+namespace simulated_lidar_scanner
 {
-  if(!urdf_model_.initParam("/robot_description"))
+SceneObject::SceneObject(const std::string& filename, const Eigen::Isometry3d& transform) : filename(filename), transform(transform)
+{
+}
+
+SceneObject::SceneObject(const std::string& filename, const std::vector<double>& pose)
+  : filename(filename), transform(Eigen::Isometry3d::Identity())
+{
+  if (pose.size() != 6)
+  {
+    throw std::runtime_error("Pose does not have 6 elements!");
+  }
+  transform.translate(Eigen::Vector3d(pose[0], pose[1], pose[2]));
+  transform.rotate(Eigen::AngleAxisd(pose[3], Eigen::Vector3d::UnitX()));
+  transform.rotate(Eigen::AngleAxisd(pose[4], Eigen::Vector3d::UnitY()));
+  transform.rotate(Eigen::AngleAxisd(pose[5], Eigen::Vector3d::UnitZ()));
+}
+
+SceneBuilder::SceneBuilder() : scene(vtkSmartPointer<vtkPolyData>::New())
+{
+  if (!urdf_model_.initParam("/robot_description"))
   {
     std::string err_msg = "'robot_description' parameter must be set";
     ROS_ERROR("%s", err_msg.c_str());
@@ -119,46 +137,35 @@ SceneBuilder::SceneBuilder()
   }
 }
 
-bool SceneBuilder::createVTKSceneFromURDF()
+void SceneBuilder::createVTKSceneFromURDF()
 {
   scene_data_.clear();
-//  scene->Reset();
+  //  scene->Reset();
 
   // Get filenames for the meshes of all static links
-  if(!getSceneGeometry())
-  {
-    ROS_FATAL("'/robot_description' parameter must be set");
-    return false;
-  }
+  getSceneGeometry();
 
   // Concatenate all vtkPolyData objects into one if multiple static meshes exist
-  if(scene_data_.size() == 0)
-  {
-    ROS_INFO("No static geometry present in URDF");
-    return false;
-  }
+  if (scene_data_.size() == 0)
+    throw std::runtime_error("No static geometry present in URDF");
 
-  if(!vtkSceneFromMeshFiles())
-  {
-    ROS_FATAL("Unable to load scene from URDF into VTK");
-    return false;
-  }
-  return true;
+  vtkSceneFromMeshFiles();
 }
 
-bool SceneBuilder::createVTKSceneFromMeshResources(const std::vector<SceneObject>& scene_objects)
+void SceneBuilder::createVTKSceneFromMeshResources(const std::vector<SceneObject>& scene_objects)
 {
   scene_data_.clear();
-//  scene->Reset();
+  //  scene->Reset();
   mesh_resource_marker_array_.markers.clear();
 
   scene_data_ = scene_objects;
 
   // Create a Marker message for each resource and add it to the marker array
   int id = 0;
-  for(auto it = scene_data_.begin(); it != scene_data_.end(); ++it)
+  for (auto it = scene_data_.begin(); it != scene_data_.end(); ++it)
   {
-    visualization_msgs::Marker marker = createMeshResourceMarker(it->filename, it->transform, urdf_model_.getRoot()->name, id);
+    visualization_msgs::Marker marker =
+        createMeshResourceMarker(it->filename, it->transform, urdf_model_.getRoot()->name, id);
     ++id;
     mesh_resource_marker_array_.markers.push_back(marker);
   }
@@ -167,24 +174,15 @@ bool SceneBuilder::createVTKSceneFromMeshResources(const std::vector<SceneObject
   changeFilenames();
 
   //
-  if(!vtkSceneFromMeshFiles())
-  {
-    ROS_ERROR("Failed to load scene from mesh resource files into VTK");
-    return false;
-  }
-
-  return true;
+  vtkSceneFromMeshFiles();
 }
 
-bool SceneBuilder::getSceneGeometry()
+void SceneBuilder::getSceneGeometry()
 {
   // Get the root link of the URDF
   urdf::LinkConstSharedPtr root_link = urdf_model_.getRoot();
-  if(!root_link)
-  {
-    ROS_FATAL("No root link set in URDF");
-    return false;
-  }
+  if (!root_link)
+    throw std::runtime_error("No root link set in URDF");
 
   // Check if the root link has any mesh geometry
   std::vector<urdf::VisualSharedPtr> root_link_visuals = root_link->visual_array;
@@ -199,21 +197,18 @@ bool SceneBuilder::getSceneGeometry()
 
   // Resolve package:// URI in filenames to get full file paths
   changeFilenames();
-
-  return true;
 }
 
-void SceneBuilder::getLinkGeometry(const std::vector<urdf::VisualSharedPtr>& visuals,
-                                   const urdf::Pose& joint_pose)
+void SceneBuilder::getLinkGeometry(const std::vector<urdf::VisualSharedPtr>& visuals, const urdf::Pose& joint_pose)
 {
-  for(auto it = visuals.begin(); it != visuals.end(); ++it)
+  for (auto it = visuals.begin(); it != visuals.end(); ++it)
   {
     urdf::VisualConstSharedPtr vis = *it;
-    if(vis->geometry->type == urdf::Geometry::MESH)
+    if (vis->geometry->type == urdf::Geometry::MESH)
     {
       Eigen::Isometry3d link_transform = urdfPoseToEigen(vis->origin);
-      Eigen::Isometry3d joint_transform  = urdfPoseToEigen(joint_pose);
-      Eigen::Isometry3d transform (joint_transform * link_transform);
+      Eigen::Isometry3d joint_transform = urdfPoseToEigen(joint_pose);
+      Eigen::Isometry3d transform(joint_transform * link_transform);
 
       SceneObject obj (std::dynamic_pointer_cast<const urdf::Mesh>(vis->geometry)->filename, transform);
       scene_data_.push_back(obj);
@@ -223,17 +218,17 @@ void SceneBuilder::getLinkGeometry(const std::vector<urdf::VisualSharedPtr>& vis
 
 void SceneBuilder::getLinkChildGeometry(const std::vector<urdf::JointSharedPtr>& joints)
 {
-  for(auto it = joints.begin(); it != joints.end(); ++it)
+  for (auto it = joints.begin(); it != joints.end(); ++it)
   {
     urdf::JointSharedPtr joint = *it;
-    if(joint->type == urdf::Joint::FIXED)
+    if (joint->type == urdf::Joint::FIXED)
     {
       urdf::LinkSharedPtr link;
       urdf_model_.getLink(joint->child_link_name, link);
       getLinkGeometry(link->visual_array, joint->parent_to_joint_origin_transform);
 
       // Check if this static link has static link children
-      if(link->child_joints.size() > 0)
+      if (link->child_joints.size() > 0)
       {
         getLinkChildGeometry(link->child_joints);
       }
@@ -250,14 +245,14 @@ void SceneBuilder::changeFilenames()
   const std::string prefix = "package://";
 
   // Iterate through all filenames to find the defined prefix
-  for(auto it = scene_data_.begin(); it != scene_data_.end(); ++it)
+  for (auto it = scene_data_.begin(); it != scene_data_.end(); ++it)
   {
     // Create a reference to the current file name
-    SceneObject &obj = *it;
+    SceneObject& obj = *it;
 
     // Find the prefix to remove in the current filename
     size_t pos = obj.filename.find(prefix);
-    if(pos != std::string::npos)
+    if (pos != std::string::npos)
     {
       // Erase prefix from filename
       obj.filename.erase(pos, prefix.length());
@@ -268,12 +263,12 @@ void SceneBuilder::changeFilenames()
       // Create package name string and get the full package name file path
       std::string pkg_name = obj.filename.substr(pos, start_pos);
       std::string pkg_path = ros::package::getPath(pkg_name);
-      if(pkg_path.length() == 0)
+      if (pkg_path.length() == 0)
       {
         // Save the iterator to the filename if the ROS package where it came from is not found
         ROS_INFO("Package not found: %s", pkg_name.c_str());
         auto erase_it = std::find_if(scene_data_.begin(), scene_data_.end(),
-                                 [&obj](const SceneObject& x){return x.filename == obj.filename;});
+                                     [&obj](const SceneObject& x) { return x.filename == obj.filename; });
         erase_its.push_back(erase_it);
         continue;
       }
@@ -287,42 +282,33 @@ void SceneBuilder::changeFilenames()
       // Save the iterator to the filename if it doesn't start with the defined prefix
       ROS_INFO("Filename not in correct format: %s", obj.filename.c_str());
       auto erase_it = std::find_if(scene_data_.begin(), scene_data_.end(),
-                               [&obj](const SceneObject& x){return x.filename == obj.filename;});
+                                   [&obj](const SceneObject& x) { return x.filename == obj.filename; });
       erase_its.push_back(erase_it);
     }
   }
 
   // Erase all filenames that weren't in the correct format
-  for(auto it = erase_its.begin(); it != erase_its.end(); ++it)
+  for (auto it = erase_its.begin(); it != erase_its.end(); ++it)
   {
     scene_data_.erase(*it);
   }
 }
 
-bool SceneBuilder::vtkSceneFromMeshFiles()
+void SceneBuilder::vtkSceneFromMeshFiles()
 {
-  if(scene_data_.empty())
-  {
-    ROS_ERROR("Scene data object is empty");
-    return false;
-  }
+  if (scene_data_.empty())
+    throw std::runtime_error("Scene data object is empty");
 
   vtkSmartPointer<vtkAppendPolyData> append_filter = vtkSmartPointer<vtkAppendPolyData>::New();
-  for(auto it = scene_data_.begin(); it != scene_data_.end(); ++it)
+  for (auto it = scene_data_.begin(); it != scene_data_.end(); ++it)
   {
-    boost::filesystem::path path (it->filename);
-    if(!boost::filesystem::exists(path))
-    {
-      ROS_ERROR("File at %s does not exist", it->filename.c_str());
-      return false;
-    }
+    boost::filesystem::path path(it->filename);
+    if (!boost::filesystem::exists(path))
+      throw std::runtime_error("File at '" + it->filename + "' does not exist");
 
     vtkSmartPointer<vtkPolyData> vtk_poly = readSTLFile(it->filename);
     if(!vtk_poly)
-    {
-      ROS_ERROR("Unable to read input .stl file");
-      return false;
-    }
+      throw std::runtime_error("Unable to read file '" + it->filename + "'");
 
     // Apply the input transformation to the VTK poly data
     vtkSmartPointer<vtkTransformPolyDataFilter> transform_filter = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
@@ -336,6 +322,6 @@ bool SceneBuilder::vtkSceneFromMeshFiles()
   }
   append_filter->Update();
   scene = append_filter->GetOutput();
-
-  return true;
 }
+
+} // namespace simulated_lidar_scanner
