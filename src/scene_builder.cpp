@@ -313,8 +313,7 @@ vtkSmartPointer<vtkPolyData> createVTKSceneFromURDF(const std::string& urdf_para
 vtkSmartPointer<vtkPolyData> createVTKSceneFromSceneObjects(std::vector<SceneObject> scene_objects)
 {
   // Replace package URI in filenames
-  changeFilenames(scene_objects);
-  return vtkSceneFromMeshFiles(scene_objects);
+  return vtkSceneFromMeshFiles(changeFilenames(scene_objects));
 }
 
 } // namespace simulated_lidar_scanner
