@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <launch>
-  <arg name="params_file" default="$(find simulated_lidar_scanner)/test/test_params.yaml"/>
+  <arg name="params_file" default="$(find simulated_lidar_scanner)/demo/params.yaml"/>
   <arg name="world_frame"/>
   <arg name="scanner_frame" />
   <arg name="scan_frequency" default="10.0" doc="Hz"/>

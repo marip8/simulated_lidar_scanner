@@ -5,7 +5,7 @@
   <link name="view_object">
     <visual>
       <geometry>
-        <mesh filename="package://simulated_lidar_scanner/test/view_object.stl"/>
+        <mesh filename="package://simulated_lidar_scanner/demo/view_object.stl"/>
       </geometry>
       <material name="view_object_material">
         <color rbga="1 0 0 1"/>

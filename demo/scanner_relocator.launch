@@ -2,7 +2,7 @@
 <launch>
   <arg name="world_frame"/>
   <arg name="scanner_parent_frame" doc="TF frame to which the position of the scanner interactive markers is relative"/>
-  <arg name="scanner_params_file" default="$(find simulated_lidar_scanner)/test/test_params.yaml"/>
+  <arg name="scanner_params_file" default="$(find simulated_lidar_scanner)/demo/params.yaml"/>
   <arg name="scan_frequency" default="10.0" doc="Hz"/>
 
   <node name="scanner_relocator" pkg="simulated_lidar_scanner" type="scanner_relocator" output="screen">
