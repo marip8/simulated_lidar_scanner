@@ -82,31 +82,19 @@ int main(int argc, char **argv)
     // Create scanner class
     LidarScannerSim scanner(sim);
 
-    // Set static scene
-    SceneBuilder builder;
-
+    // Create and set the scanner scene
     try
     {
       std::vector<SceneObject> scene_objects = getParams(get<XmlRpc::XmlRpcValue>(pnh, "resources"));
-      try
-      {
-        builder.createVTKSceneFromMeshResources(scene_objects);
-      }
-      catch (const std::exception& ex)
-      {
-        ROS_WARN("Failed to parse mesh resource parameters correctly");
-        ROS_WARN("Building scene from static geometry in URDF");
-        builder.createVTKSceneFromURDF();
-      }
+      scanner.setScannerScene(createVTKSceneFromSceneObjects(scene_objects));
     }
     catch (const std::exception& ex)
     {
-      ROS_WARN("Failed to find mesh resources parameter");
+      ROS_WARN("Failed to parse mesh resource parameters");
       ROS_WARN("Building scene from static geometry in URDF");
-      builder.createVTKSceneFromURDF();
+      scanner.setScannerScene(createVTKSceneFromURDF());
     }
 
-    scanner.setScannerScene(builder.scene);
     ROS_INFO_STREAM("Simulated LIDAR scanner initialization completed. Looking up data from scanner frame '"
                     << scanner_frame << "' in world frame '" << world_frame << "'. Beginning data acquisition...");
 
