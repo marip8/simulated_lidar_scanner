@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+  <include file="$(find simulated_lidar_scanner)/demo/demo.launch">
+    <arg name="rviz" value="false"/>
+  </include>
+</launch>

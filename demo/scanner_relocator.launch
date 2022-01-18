@@ -1,0 +1,27 @@
+<?xml version="1.0" ?>
+<launch>
+  <arg name="world_frame"/>
+  <arg name="scanner_parent_frame" doc="TF frame to which the position of the scanner interactive markers is relative"/>
+  <arg name="scanner_params_file" default="$(find simulated_lidar_scanner)/demo/params.yaml"/>
+  <arg name="scan_frequency" default="10.0" doc="Hz"/>
+
+  <node name="scanner_relocator" pkg="simulated_lidar_scanner" type="scanner_relocator" output="screen">
+    <param name="world_frame" value="$(arg scanner_parent_frame)"/>
+    <rosparam param="scanner_frames"> ["sensor_1", "sensor_2"] </rosparam>
+  </node>
+
+  <include file="$(find simulated_lidar_scanner)/launch/start.launch">
+    <arg name="params_file" value="$(arg scanner_params_file)"/>
+    <arg name="world_frame" value="$(arg world_frame)"/>
+    <arg name="scanner_frame" value="sensor_1"/>
+    <arg name="scan_frequency" value="$(arg scan_frequency)"/>
+  </include>
+
+  <include file="$(find simulated_lidar_scanner)/launch/start.launch">
+    <arg name="params_file" value="$(arg scanner_params_file)"/>
+    <arg name="world_frame" value="$(arg world_frame)"/>
+    <arg name="scanner_frame" value="sensor_2"/>
+    <arg name="scan_frequency" value="$(arg scan_frequency)"/>
+  </include>
+
+</launch>

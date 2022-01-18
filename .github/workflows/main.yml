@@ -1,6 +1,12 @@
 name: CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
 
 jobs:
   industrial_ci:
@@ -9,10 +15,15 @@ jobs:
       matrix:
         env:
           - {OS_NAME: ubuntu,
-             OS_CODE_NAME: xenial,
-             ROS_DISTRO: kinetic,
+             OS_CODE_NAME: bionic,
+             ROS_DISTRO: melodic,
              ROS_REPO: main,
-             BADGE: xenial}
+             BADGE: melodic}
+          - {OS_NAME: ubuntu,
+             OS_CODE_NAME: focal,
+             ROS_DISTRO: noetic,
+             ROS_REPO: main,
+             BADGE: noetic}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
