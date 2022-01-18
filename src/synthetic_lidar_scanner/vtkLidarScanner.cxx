@@ -541,8 +541,7 @@ void vtkLidarScanner::AcquirePoint(const unsigned int thetaIndex, const unsigned
   // Set the flag for this point indicating that there was a valid intersection
   this->Scan->GetValue(phiIndex, thetaIndex)->SetHit(true);
 
-//  this->AddNoise(Scan->GetValue(phiIndex, thetaIndex));
-
+  this->AddNoise(Scan->GetValue(phiIndex, thetaIndex));
 }
 
 void vtkLidarScanner::PerformScan()
