@@ -215,7 +215,7 @@ void SceneBuilder::getLinkGeometry(const std::vector<urdf::VisualSharedPtr>& vis
       Eigen::Isometry3d joint_transform  = urdfPoseToEigen(joint_pose);
       Eigen::Isometry3d transform (joint_transform * link_transform);
 
-      SceneObject obj (boost::dynamic_pointer_cast<const urdf::Mesh>(vis->geometry)->filename, transform);
+      SceneObject obj (std::dynamic_pointer_cast<const urdf::Mesh>(vis->geometry)->filename, transform);
       scene_data_.push_back(obj);
     }
   }
