@@ -23,20 +23,20 @@ std::vector<SceneObject> getParams(const XmlRpc::XmlRpcValue& resources)
 {
   std::vector<SceneObject> scene_objects;
 
-  for(int i = 0; i < resources.size(); ++i)
+  for (int i = 0; i < resources.size(); ++i)
   {
     const XmlRpc::XmlRpcValue& mesh = resources[i];
     const XmlRpc::XmlRpcValue& file = mesh["file"];
     const XmlRpc::XmlRpcValue& pose = mesh["pose"];
     const std::string path = static_cast<std::string>(file);
     std::vector<double> vals;
-    for(int j = 0; j < 6; ++j)
+    for (int j = 0; j < 6; ++j)
     {
       double val = static_cast<double>(pose[j]);
       vals.push_back(val);
     }
 
-    SceneObject obj (path, vals);
+    SceneObject obj(path, vals);
     scene_objects.push_back(obj);
   }
 
@@ -57,7 +57,7 @@ ScannerParams loadScannerParams(const ros::NodeHandle& nh)
   return sim;
 }
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
   try
   {

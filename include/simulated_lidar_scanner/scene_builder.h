@@ -25,4 +25,4 @@ vtkSmartPointer<vtkPolyData> createVTKSceneFromURDF(const std::string& urdf_para
 /** @brief Creates a VTK scene from a list of scene objects */
 vtkSmartPointer<vtkPolyData> createVTKSceneFromSceneObjects(std::vector<SceneObject> scene_objects);
 
-} // namespace simulated_lidar_scanner
+}  // namespace simulated_lidar_scanner

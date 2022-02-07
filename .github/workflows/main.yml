@@ -24,6 +24,12 @@ jobs:
              ROS_DISTRO: noetic,
              ROS_REPO: main,
              BADGE: noetic}
+          - {OS_NAME: ubuntu,
+             OS_CODE_NAME: focal,
+             ROS_DISTRO: noetic,
+             CLANG_FORMAT_VERSION: 8,
+             CLANG_FORMAT_CHECK: file,
+             BADGE: clang-format}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2

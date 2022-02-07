@@ -16,67 +16,71 @@
 
 namespace
 {
-  vtkSmartPointer<vtkPolyData> readSTLFile(const std::string& file)
-  {
-    vtkSmartPointer<vtkSTLReader> reader = vtkSmartPointer<vtkSTLReader>::New();
-    reader->SetFileName(file.c_str());
-    reader->SetMerging(1);
-    reader->Update();
+vtkSmartPointer<vtkPolyData> readSTLFile(const std::string& file)
+{
+  vtkSmartPointer<vtkSTLReader> reader = vtkSmartPointer<vtkSTLReader>::New();
+  reader->SetFileName(file.c_str());
+  reader->SetMerging(1);
+  reader->Update();
 
-    return reader->GetOutput();
+  return reader->GetOutput();
+}
+
+vtkSmartPointer<vtkTransform> urdfPoseToVTKTransform(const urdf::Pose& pose)
+{
+  urdf::Rotation q = pose.rotation;
+  urdf::Vector3 p = pose.position;
+  double w, x, y, z, denom;
+
+  if (q.w > 1)
+  {
+    q.normalize();
+  }
+  w = 2 * std::acos(q.w);
+  denom = std::sqrt(1 - q.w * q.w);
+  if (denom < 0.001)
+  {
+    // Choose an arbitrary axis since the rotation angle ~= 0
+    x = 0.0;  // q.x;
+    y = 0.0;  // q.y;
+    z = 1.0;  // q.z;
+  }
+  else
+  {
+    x = q.x / denom;
+    y = q.y / denom;
+    z = q.z / denom;
   }
 
-  vtkSmartPointer<vtkTransform> urdfPoseToVTKTransform(const urdf::Pose& pose)
-  {
-    urdf::Rotation q = pose.rotation;
-    urdf::Vector3 p = pose.position;
-    double w, x, y, z, denom;
+  vtkSmartPointer<vtkTransform> transform = vtkSmartPointer<vtkTransform>::New();
+  transform->Translate(p.x, p.y, p.z);
+  transform->RotateWXYZ(w * 180 / M_PI, x, y, z);
 
-    if(q.w > 1) {q.normalize();}
-    w = 2*std::acos(q.w);
-    denom = std::sqrt(1 - q.w*q.w);
-    if(denom < 0.001)
-    {
-      // Choose an arbitrary axis since the rotation angle ~= 0
-      x = 0.0; //q.x;
-      y = 0.0; //q.y;
-      z = 1.0; //q.z;
-    }
-    else
-    {
-      x = q.x / denom;
-      y = q.y / denom;
-      z = q.z / denom;
-    }
+  return transform;
+}
 
-    vtkSmartPointer<vtkTransform> transform = vtkSmartPointer<vtkTransform>::New();
-    transform->Translate(p.x, p.y, p.z);
-    transform->RotateWXYZ(w*180/M_PI, x, y, z);
+Eigen::Isometry3d urdfPoseToEigen(const urdf::Pose& pose)
+{
+  Eigen::Isometry3d transform(Eigen::Isometry3d::Identity());
+  transform.translate(Eigen::Vector3d(pose.position.x, pose.position.y, pose.position.z));
+  transform.rotate(Eigen::Quaterniond(pose.rotation.w, pose.rotation.x, pose.rotation.y, pose.rotation.z));
 
-    return transform;
-  }
+  return transform;
+}
 
-  Eigen::Isometry3d urdfPoseToEigen(const urdf::Pose& pose)
-  {
-    Eigen::Isometry3d transform (Eigen::Isometry3d::Identity());
-    transform.translate(Eigen::Vector3d(pose.position.x, pose.position.y, pose.position.z));
-    transform.rotate(Eigen::Quaterniond(pose.rotation.w, pose.rotation.x, pose.rotation.y, pose.rotation.z));
+vtkSmartPointer<vtkTransform> eigenTransformToVTK(const Eigen::Isometry3d& transform)
+{
+  vtkSmartPointer<vtkTransform> vtk_transform = vtkSmartPointer<vtkTransform>::New();
 
-    return transform;
-  }
+  Eigen::Translation3d translation(transform.translation());
+  vtk_transform->Translate(translation.x(), translation.y(), translation.z());
 
-  vtkSmartPointer<vtkTransform> eigenTransformToVTK(const Eigen::Isometry3d& transform)
-  {
-    vtkSmartPointer<vtkTransform> vtk_transform = vtkSmartPointer<vtkTransform>::New();
+  Eigen::AngleAxisd rotation(transform.rotation());
+  vtk_transform->RotateWXYZ(rotation.angle() * 180.0 / M_PI, rotation.axis()[0], rotation.axis()[1],
+                            rotation.axis()[2]);
 
-    Eigen::Translation3d translation (transform.translation());
-    vtk_transform->Translate(translation.x(), translation.y(), translation.z());
-
-    Eigen::AngleAxisd rotation (transform.rotation());
-    vtk_transform->RotateWXYZ(rotation.angle()*180.0/M_PI, rotation.axis()[0], rotation.axis()[1], rotation.axis()[2]);
-
-    return vtk_transform;
-  }
+  return vtk_transform;
+}
 
 //  visualization_msgs::Marker createMeshResourceMarker(const std::string& filename,
 //                                                      const Eigen::Isometry3d& transform,
@@ -110,11 +114,12 @@ namespace
 
 //    return marker;
 //  }
-}
+}  // namespace
 
 namespace simulated_lidar_scanner
 {
-SceneObject::SceneObject(const std::string& filename, const Eigen::Isometry3d& transform) : filename(filename), transform(transform)
+SceneObject::SceneObject(const std::string& filename, const Eigen::Isometry3d& transform)
+  : filename(filename), transform(transform)
 {
 }
 
@@ -278,7 +283,7 @@ vtkSmartPointer<vtkPolyData> vtkSceneFromMeshFiles(const std::vector<SceneObject
       throw std::runtime_error("File at '" + it->filename + "' does not exist");
 
     vtkSmartPointer<vtkPolyData> vtk_poly = readSTLFile(it->filename);
-    if(!vtk_poly)
+    if (!vtk_poly)
       throw std::runtime_error("Unable to read file '" + it->filename + "'");
 
     // Apply the input transformation to the VTK poly data
@@ -316,4 +321,4 @@ vtkSmartPointer<vtkPolyData> createVTKSceneFromSceneObjects(std::vector<SceneObj
   return vtkSceneFromMeshFiles(changeFilenames(scene_objects));
 }
 
-} // namespace simulated_lidar_scanner
+}  // namespace simulated_lidar_scanner
