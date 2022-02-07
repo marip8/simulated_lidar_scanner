@@ -110,7 +110,7 @@ vtkLidarScanner::vtkLidarScanner()
 
   this->Scene = vtkSmartPointer<vtkPolyData>::New();
 
-  this->Scan = vtkSmartPointer<vtkDenseArray<vtkLidarPoint*> >::New();
+  this->Scan = vtkSmartPointer<vtkDenseArray<vtkSmartPointer<vtkLidarPoint>>>::New();
 }
 
 int vtkLidarScanner::FillInputPortInformation( int port, vtkInformation* info )
@@ -124,21 +124,6 @@ int vtkLidarScanner::FillInputPortInformation( int port, vtkInformation* info )
 
   vtkErrorMacro("This filter does not have more than 1 input port!");
   return 0;
-}
-
-
-vtkLidarScanner::~vtkLidarScanner()
-{
-  if(this->Scan)
-    {
-    for(int i = this->Scan->GetExtent(0).GetBegin(); i < this->Scan->GetExtent(0).GetEnd(); i++)
-      {
-      for(int j = this->Scan->GetExtent(1).GetBegin(); j < this->Scan->GetExtent(1).GetEnd(); j++)
-        {
-        this->Scan->GetValue(i,j)->Delete();
-        }
-      }
-    }
 }
 
 // Convenience functions for setting values from degrees.
@@ -431,7 +416,7 @@ void vtkLidarScanner::AcquirePoint(const unsigned int thetaIndex, const unsigned
 
   // We have computed the grid of rays (in MakeSphericalGrid()) relative to a "default" scanner (i.e. Forward = (0,1,0))
   // so we have to apply the scanner's transform to the ray before casting it
-  vtkRay* ray = this->Scan->GetValue(phiIndex, thetaIndex)->GetRay();
+  vtkSmartPointer<vtkRay> ray = this->Scan->GetValue(phiIndex, thetaIndex)->GetRay();
   
   //std::cout << "Transform: " << *Transform << std::endl;
   
@@ -555,7 +540,7 @@ void vtkLidarScanner::PerformScan()
     {
     for(unsigned int phi = 0; phi < this->NumberOfPhiPoints; phi++)
       {
-      vtkRay* ray = this->Scan->GetValue(phi, theta)->GetRay();
+      vtkSmartPointer<vtkRay> ray = this->Scan->GetValue(phi, theta)->GetRay();
       ray->ApplyTransform(this->Transform);
       }
     }
@@ -603,11 +588,11 @@ void vtkLidarScanner::MakeSphericalGrid()
       double* rayDir = transform->TransformPoint(this->Forward);
 
       // Construct a ray
-      vtkRay* ray = vtkRay::New();
+      auto ray = vtkSmartPointer<vtkRay>::New();
       ray->SetOrigin(this->Origin);
       ray->SetDirection(rayDir);
 
-      vtkLidarPoint* lidarPoint = vtkLidarPoint::New();
+      auto lidarPoint = vtkSmartPointer<vtkLidarPoint>::New();
       lidarPoint->SetRay(ray);
 
       // Store the ray in the grid
@@ -838,7 +823,7 @@ void vtkLidarScanner::GetValidOutputPoints(vtkPolyData* const output)
         if(StoreRays)
           {
           // Set the next element in the geometry/topology/normal vector
-          vtkRay* R = this->Scan->GetValue(phiCounter, thetaCounter)->GetRay();
+          vtkSmartPointer<vtkRay> R = this->Scan->GetValue(phiCounter, thetaCounter)->GetRay();
           double p[3];
           R->GetPointAlong(this->RepresentationLength, p);
           vtkIdType pid[1];
@@ -1010,7 +995,7 @@ void vtkLidarScanner::AddNoise(vtkSmartPointer<vtkLidarPoint> point)
 
   // Get the original point information
   double* originalPoint = point->GetCoordinate();
-  vtkRay* originalRay = point->GetRay();
+  vtkSmartPointer<vtkRay> originalRay = point->GetRay();
 
   // Create line of sight noise (a vector to add to the point to affect the distance that was seen)
   double* los = originalRay->GetDirection();

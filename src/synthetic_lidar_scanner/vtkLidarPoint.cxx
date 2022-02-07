@@ -24,22 +24,15 @@
 
 vtkStandardNewMacro(vtkLidarPoint);
 
-vtkLidarPoint::vtkLidarPoint()
+vtkSmartPointer<vtkRay> vtkLidarPoint::GetRay()
 {
-	// Until specified, this LidarPoint is invalid
-  this->Hit = false;
-  this->Ray = NULL;
+  return Ray;
 }
 
-vtkLidarPoint::~vtkLidarPoint() 
+void vtkLidarPoint::SetRay(const vtkSmartPointer<vtkRay>& ray)
 {
-  if(this->Ray)
-    {
-    this->Ray->Delete();
-    }
+  this->Ray = ray;
 }
-
-vtkCxxSetObjectMacro(vtkLidarPoint, Ray, vtkRay);
 
 void vtkLidarPoint::GetNormal(double n[3])
 {

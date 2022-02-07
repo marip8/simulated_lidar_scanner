@@ -19,28 +19,9 @@
 #ifndef __vtkLidarScanner_h
 #define __vtkLidarScanner_h
 
-/**
-This Lidar scanner class models the output of the Leica HDS 3000. It acquires data in a series of vertical strips, from low to high, left to right.
-The output is either a pointcloud (with CreateMesh == 0) or a connected mesh (with CreateMesh == 1).
-
-Coordinate System:
-
-The scanner coordinate system is as follows:
-z = up
-y = forward
-therefore (to be right handed), x = right
-
-Theta:
-The angle in the "XY" (forward-right) plane (a rotation around Z), measured from +y (Forward). It's range is -pi to pi. -pi/2 is left, pi/2 is right. This is obtained by rotating around the "up" axis.
-
-Phi:
-The elevation angle, in the YZ (forward-up) plane (a rotation around X), measured from +y. It's range is -pi/2 (down) to pi/2 (up). This is obtained by rotating around the "right" axis (AFTER the new right axis is obtained by setting Theta).
-
-The output is a vtkImageData. The scalars are the color values. A ValidArray is attached to the PointData to indicate which returns were valid. A CoordinateArray stores on the PointData stores the coordinates of the returns. An Intensity array stores the intensities of each return.
-*/
-
-#include "vtkImageAlgorithm.h"
-#include "vtkSmartPointer.h"
+#include <vtkImageAlgorithm.h>
+#include <vtkSmartPointer.h>
+#include <vector>
 
 class vtkPolyData;
 class vtkTransform;
@@ -53,14 +34,34 @@ template <typename T> class vtkDenseArray;
 class vtkRay;
 class vtkLidarPoint;
 
-#include <vector>
-
+/**
+ * @brief This Lidar scanner class models the output of the Leica HDS 3000. It acquires data in a series of vertical
+ * strips, from low to high, left to right. The output is either a pointcloud (with CreateMesh == 0) or a connected mesh
+ * (with CreateMesh == 1).
+ * @details
+ * Coordinate System:
+ *   The scanner coordinate system is as follows:
+ *     z = up
+ *     y = forward
+ *     x = right, (to be right handed)
+ *
+ * Theta: The angle in the "XY" (forward-right) plane (a rotation around Z), measured from +y (Forward). It's range is
+ * -pi to pi. -pi/2 is left, pi/2 is right. This is obtained by rotating around the "up" axis.
+ *
+ * Phi: The elevation angle, in the YZ (forward-up) plane (a rotation around X), measured from +y. It's range is -pi/2
+ * (down) yo pi/2 (up). This is obtained by rotating around the "right" axis (AFTER the new right axis is obtained by
+ * setting Theta).
+ *
+ * The output is a vtkImageData. The scalars are the color values. A ValidArray is attached to the PointData to indicate
+ * which returns were valid. A CoordinateArray stores on the PointData stores the coordinates of the returns. An
+ * Intensity array stores the intensities of each return.
+ */
 class vtkLidarScanner : public vtkImageAlgorithm
 {
 public:
   static vtkLidarScanner *New();
   vtkTypeMacro(vtkLidarScanner,vtkImageAlgorithm);
-  void PrintSelf(ostream &os, vtkIndent indent);
+  void PrintSelf(ostream &os, vtkIndent indent) override;
 
   vtkGetMacro(NumberOfThetaPoints, unsigned int);
   vtkGetMacro(NumberOfPhiPoints, unsigned int);
@@ -134,14 +135,13 @@ public:
 
   void WriteScanner(const std::string& filename) const; //write a vtp file of a coordinate system indicating the scanner's location and orientation
 
-  vtkSmartPointer<vtkDenseArray<vtkLidarPoint*>> GetScan() {return Scan;}
+  vtkSmartPointer<vtkDenseArray<vtkSmartPointer<vtkLidarPoint>>> GetScan() {return Scan;}
 
 protected:
 
   vtkLidarScanner();
-  ~vtkLidarScanner();
-  int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *); //the function that makes this class work with the vtk pipeline
-  int FillInputPortInformation( int port, vtkInformation* info );
+  int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *) override; //the function that makes this class work with the vtk pipeline
+  int FillInputPortInformation( int port, vtkInformation* info ) override;
 
   void MakeSphericalGrid(); //use a uniform spherical spacing
 
@@ -168,7 +168,7 @@ protected:
   // arrays which contain the rest of the scan information
   vtkSmartPointer<vtkImageData> Output;
 
-  vtkSmartPointer<vtkDenseArray<vtkLidarPoint*> > Scan;
+  vtkSmartPointer<vtkDenseArray<vtkSmartPointer<vtkLidarPoint>>> Scan;
 
   double LOSVariance;
   double OrthogonalVariance;
