@@ -20,7 +20,7 @@
 #include "simulated_lidar_scanner/synthetic_lidar_scanner/vtkRay.h"
 
 #include "vtkSmartPointer.h"
-#include "vtkObjectFactory.h" //for new() macro
+#include "vtkObjectFactory.h"  //for new() macro
 
 vtkStandardNewMacro(vtkLidarPoint);
 
@@ -36,40 +36,38 @@ void vtkLidarPoint::SetRay(const vtkSmartPointer<vtkRay>& ray)
 
 void vtkLidarPoint::GetNormal(double n[3])
 {
-  for(unsigned int i = 0; i < 3; i++)
-    {
+  for (unsigned int i = 0; i < 3; i++)
+  {
     n[i] = this->Normal[i];
-    }
+  }
 }
 
 double* vtkLidarPoint::GetNormal()
 {
-	// There is only a normal if this is a valid LidarPoint
-	if(this->Hit)
-    {
-		return Normal;
-    }
-	else
-    {
-		return NULL;
-    }
+  // There is only a normal if this is a valid LidarPoint
+  if (this->Hit)
+  {
+    return Normal;
+  }
+  else
+  {
+    return NULL;
+  }
 }
 
-void vtkLidarPoint::PrintSelf(ostream &os, vtkIndent indent)
+void vtkLidarPoint::PrintSelf(ostream& os, vtkIndent indent)
 {
-  this->Superclass::PrintSelf(os,indent);
-  
-	//if the LidarPoint is valid, print its information
-	if(this->Hit)
-	  {
-                os << "Coordinate: " << Coordinate[0] << " " << Coordinate[1] << " " << Coordinate[2] << std::endl
-                        << "Ray: " << *Ray << std::endl
-                        << "Normal: " << Normal[0] << " " << Normal[1] << " " << Normal[2] << std::endl;
-	  }
-	else
-	  {
-                os << "Invalid!" << std::endl;
-	  }
+  this->Superclass::PrintSelf(os, indent);
 
+  // if the LidarPoint is valid, print its information
+  if (this->Hit)
+  {
+    os << "Coordinate: " << Coordinate[0] << " " << Coordinate[1] << " " << Coordinate[2] << std::endl
+       << "Ray: " << *Ray << std::endl
+       << "Normal: " << Normal[0] << " " << Normal[1] << " " << Normal[2] << std::endl;
+  }
+  else
+  {
+    os << "Invalid!" << std::endl;
+  }
 }
-

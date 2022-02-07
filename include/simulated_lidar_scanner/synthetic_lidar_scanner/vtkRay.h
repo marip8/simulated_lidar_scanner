@@ -19,7 +19,7 @@
 #ifndef __vtkRay_h
 #define __vtkRay_h
 
-#include <vtkObject.h> //superclass
+#include <vtkObject.h>  //superclass
 
 class vtkTransform;
 
@@ -29,26 +29,27 @@ class vtkTransform;
 class vtkRay : public vtkObject
 {
 public:
-  static vtkRay *New();
-  vtkTypeMacro(vtkRay,vtkObject);
+  static vtkRay* New();
+  vtkTypeMacro(vtkRay, vtkObject);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
   vtkRay() = default;
 
   ////////// Accessors ///////////
-  vtkGetVector3Macro(Origin,double);
-  vtkGetVector3Macro(Direction,double);
+  vtkGetVector3Macro(Origin, double);
+  vtkGetVector3Macro(Direction, double);
 
   /////////// Mutators ///////////
-  vtkSetVector3Macro(Origin,double); //specify the origin of the ray
-  void SetDirection(double* Dir); //specify the direction of the ray
-  void ApplyTransform(vtkTransform* const Trans); //transform the ray
-  void GetPointAlong(const double dist, double pointAlong[3]); //get a point 'dist' units from the rays origin along the ray
-  bool IsInfront(double* P); //check if a point is in the halfspace "in front of" the ray origin
+  vtkSetVector3Macro(Origin, double);              // specify the origin of the ray
+  void SetDirection(double* Dir);                  // specify the direction of the ray
+  void ApplyTransform(vtkTransform* const Trans);  // transform the ray
+  void GetPointAlong(const double dist,
+                     double pointAlong[3]);  // get a point 'dist' units from the rays origin along the ray
+  bool IsInfront(double* P);                 // check if a point is in the halfspace "in front of" the ray origin
 
 private:
-  double Origin[3]{ 0.0, 0.0, 0.0 };  //(x,y,z) coords of ray origin
-  double Direction[3]{0.0, 0.0, 1.0};  // the direction of the ray
+  double Origin[3]{ 0.0, 0.0, 0.0 };     //(x,y,z) coords of ray origin
+  double Direction[3]{ 0.0, 0.0, 1.0 };  // the direction of the ray
 };
 
 #endif
