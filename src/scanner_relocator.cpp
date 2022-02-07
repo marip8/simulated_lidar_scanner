@@ -17,7 +17,7 @@ visualization_msgs::Marker makeVisualMarker(const std::string& scanner_frame)
   marker.scale.y = 0.075;
   marker.scale.z = 0.075;
 
-  marker.color.a = 1.0; // Don't forget to set the alpha!
+  marker.color.a = 1.0;  // Don't forget to set the alpha!
   marker.color.r = 0.5;
   marker.color.g = 0.5;
   marker.color.b = 0.5;
@@ -115,7 +115,7 @@ T get(const ros::NodeHandle& nh, const std::string& key)
   return val;
 }
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
   try
   {

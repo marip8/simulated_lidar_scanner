@@ -35,7 +35,7 @@ class LidarScannerSim
 public:
   LidarScannerSim(const ScannerParams& sim);
 
-  inline void setScannerScene(const vtkSmartPointer<vtkPolyData> &scene)
+  inline void setScannerScene(const vtkSmartPointer<vtkPolyData>& scene)
   {
     scanner_->SetScene(scene);
   }
@@ -65,4 +65,4 @@ private:
   double max_distance_;
 };
 
-} // namespace simulated_lidar_scanner
+}  // namespace simulated_lidar_scanner
