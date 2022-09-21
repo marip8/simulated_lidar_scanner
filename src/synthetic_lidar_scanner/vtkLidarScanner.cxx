@@ -69,12 +69,18 @@ double* vtkLidarScanner::GetLocation() const
 
 double vtkLidarScanner::GetPhiStep() const
 {
-  return fabs(MaxPhiAngle - MinPhiAngle) / static_cast<double>(NumberOfPhiPoints - 1);
+  if (NumberOfPhiPoints > 1)
+    return fabs(MaxPhiAngle - MinPhiAngle) / static_cast<double>(NumberOfPhiPoints - 1);
+  else
+    return 0.0;
 }
 
 double vtkLidarScanner::GetThetaStep() const
 {
-  return fabs(MaxThetaAngle - MinThetaAngle) / static_cast<double>(NumberOfThetaPoints - 1);
+  if (NumberOfThetaPoints > 1)
+    return fabs(MaxThetaAngle - MinThetaAngle) / static_cast<double>(NumberOfThetaPoints - 1);
+  else
+    return 0.0;
 }
 
 double vtkLidarScanner::GetNumberOfTotalPoints() const
