@@ -49,13 +49,12 @@ bool distanceFilter(const pcl::PointNormal& pt, const double max_dist)
 
 namespace simulated_lidar_scanner
 {
-LidarScannerSim::LidarScannerSim(const ScannerParams& sim)
+LidarScannerSim::LidarScannerSim(const ScannerParams& sim, const bool z_out)
+  : z_out_(z_out)
+  , scanner_(vtkSmartPointer<vtkLidarScanner>::New())
+  , scan_data_vtk_(vtkSmartPointer<vtkPolyData>::New())
+  , scan_data_cloud_(new pcl::PointCloud<pcl::PointNormal>())
 {
-  // Initialize scanner and scan data
-  scanner_ = vtkSmartPointer<vtkLidarScanner>::New();
-  scan_data_vtk_ = vtkSmartPointer<vtkPolyData>::New();
-  scan_data_cloud_.reset(new pcl::PointCloud<pcl::PointNormal>());
-
   // Set scanner parameters
   scanner_->SetPhiSpan(sim.phi_span);
   scanner_->SetThetaSpan(sim.theta_span);
@@ -91,10 +90,13 @@ void LidarScannerSim::setScannerTransform(const Eigen::Isometry3d& frame)
     }
   }
 
-  // Create transform from matrix; rotate such that sensor axis is Z axis
+  // Create transform from matrix
   vtkSmartPointer<vtkTransform> transform = vtkSmartPointer<vtkTransform>::New();
   transform->SetMatrix(vtk_matrix);
-  transform->RotateX(90.0f);
+
+  // Rotate such that sensor axis is Z axis
+  if (z_out_)
+    transform->RotateX(90.0f);
 
   // Set and update transform in scanner object
   scanner_->SetTransform(transform);
