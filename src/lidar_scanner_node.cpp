@@ -71,6 +71,7 @@ int main(int argc, char** argv)
     const std::string world_frame = get<std::string>(pnh, "world_frame");
     const std::string scanner_frame = get<std::string>(pnh, "scanner_frame");
     const ros::Rate rate(get<double>(pnh, "scan_frequency"));
+    const bool z_out = get<bool>(pnh, "z_out");
 
     // Get scanner parameters
     const ScannerParams sim = loadScannerParams(pnh);
@@ -80,7 +81,7 @@ int main(int argc, char** argv)
     tf2_ros::TransformListener listener(buffer);
 
     // Create scanner class
-    LidarScannerSim scanner(sim);
+    LidarScannerSim scanner(sim, z_out);
 
     // Create and set the scanner scene
     try
@@ -106,10 +107,8 @@ int main(int argc, char** argv)
       geometry_msgs::TransformStamped transform;
       try
       {
-        transform = buffer.lookupTransform(world_frame, scanner_frame, ros::Time(0));
-
         // Set scanner transform and dynamically changing elements of the scene
-        scanner.getNewScanData(tf2::transformToEigen(transform));
+        scanner.getNewScanData(tf2::transformToEigen(buffer.lookupTransform(world_frame, scanner_frame, ros::Time(0))));
         pcl::PointCloud<pcl::PointNormal>::Ptr data = scanner.getScanDataPointCloud();
 
         // Convert scan data from private class object to ROS msg

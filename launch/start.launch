@@ -4,12 +4,14 @@
   <arg name="world_frame"/>
   <arg name="scanner_frame" />
   <arg name="scan_frequency" default="10.0" doc="Hz"/>
+  <arg name="z_out" value="true" doc="Flag to indicate whether the z-axis be oriented 'out' into the data like a camera (true), or if the data should be arrayed around the z-axis like a LiDAR scanner (false)"/>
 
   <node name="$(arg scanner_frame)" pkg="simulated_lidar_scanner" type="simulated_lidar_scanner_node" output="screen" clear_params="true">
     <rosparam command="load" file="$(arg params_file)"/>
     <param name="world_frame" value="$(arg world_frame)"/>
     <param name="scanner_frame" value="$(arg scanner_frame)"/>
     <param name="scan_frequency" value="$(arg scan_frequency)"/>
+    <param name="z_out" value="$(arg z_out)"/>
   </node>
 
 </launch>

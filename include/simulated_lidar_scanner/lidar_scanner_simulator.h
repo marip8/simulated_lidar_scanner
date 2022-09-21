@@ -33,7 +33,7 @@ struct ScannerParams
 class LidarScannerSim
 {
 public:
-  LidarScannerSim(const ScannerParams& sim);
+  LidarScannerSim(const ScannerParams& sim, const bool z_out);
 
   inline void setScannerScene(const vtkSmartPointer<vtkPolyData>& scene)
   {
@@ -55,6 +55,8 @@ public:
   }
 
 private:
+  const bool z_out_;
+
   vtkSmartPointer<vtkLidarScanner> scanner_;
   vtkSmartPointer<vtkPolyData> scan_data_vtk_;
   pcl::PointCloud<pcl::PointNormal>::Ptr scan_data_cloud_;
