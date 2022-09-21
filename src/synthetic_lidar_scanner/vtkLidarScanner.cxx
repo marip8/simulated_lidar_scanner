@@ -418,28 +418,6 @@ void vtkLidarScanner::AcquirePoint(const unsigned int thetaIndex, const unsigned
   // so we have to apply the scanner's transform to the ray before casting it
   vtkSmartPointer<vtkRay> ray = this->Scan->GetValue(phiIndex, thetaIndex)->GetRay();
 
-  // std::cout << "Transform: " << *Transform << std::endl;
-
-  // vtkSmartPointer<vtkTransform> tempTransform = vtkSmartPointer<vtkTransform>::New();
-  //   InverseTransform->DeepCopy(Transform);
-  //   InverseTransform->Inverse();
-  //   std::cout << "inverted transform: " << *InverseTransform << std::endl;
-  //   ray->ApplyTransform(InverseTransform);
-  //   std::cout << "Applied transform." << std::endl;
-
-  {
-    double origin[3];
-    double direction[3];
-    ray->GetOrigin(origin);
-    ray->GetDirection(direction);
-    //     std::cout << "Ray: " << " origin: " << origin[0] << " " << origin[1] << " " << origin[2]
-    //               << " direction: " << direction[0] << " " << direction[1] << " " << direction[2] << std::endl;
-
-    double* scannerOrigin = this->Transform->GetPosition();
-    // std::cout << "scannerOrigin: " << scannerOrigin[0] << " " << scannerOrigin[1] << " " << scannerOrigin[2] <<
-    // std::endl;
-  }
-
   double t;
   double x[3];
   double pcoords[3];
@@ -531,7 +509,6 @@ void vtkLidarScanner::AcquirePoint(const unsigned int thetaIndex, const unsigned
 void vtkLidarScanner::PerformScan()
 {
   //  std::cout << "Performing scan..." << std::endl;
-
   this->MakeSphericalGrid();
 
   // Apply the transform to each ray
@@ -541,23 +518,11 @@ void vtkLidarScanner::PerformScan()
     {
       vtkSmartPointer<vtkRay> ray = this->Scan->GetValue(phi, theta)->GetRay();
       ray->ApplyTransform(this->Transform);
-    }
-  }
 
-  // Loop through the grid and intersect each ray with the scene.
-  unsigned int numberOfMisses = 0;
-  for (unsigned int theta = 0; theta < this->NumberOfThetaPoints; theta++)
-  {
-    for (unsigned int phi = 0; phi < this->NumberOfPhiPoints; phi++)
-    {
+      // intersect the ray with the scene.
       AcquirePoint(theta, phi);
-      if (!this->Scan->GetValue(phi, theta)->GetHit())
-      {
-        numberOfMisses++;
-      }
     }
   }
-  //  std::cout << "There were " << numberOfMisses << " misses." << std::endl;
 }
 
 void vtkLidarScanner::MakeSphericalGrid()
